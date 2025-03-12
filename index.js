@@ -1,8 +1,15 @@
+// Load environment variables from .env file
+require('dotenv').config();
+
+// Import required modules
 const express = require('express');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 
+// Initialize Express app
 const app = express();
+
+// Middleware to enable CORS and parse JSON requests
 app.use(cors());
 app.use(express.json());
 
@@ -15,14 +22,19 @@ const transporter = nodemailer.createTransport({
   port: 587,
   secure: false, // true for 465, false for other ports
   auth: {
-    user: 'ishrak.riyadh@gmail.com', // Replace with your Gmail address
-    pass: 'vqntwaaokczpcqry', // Replace with your Gmail password or app password
+    user: process.env.EMAIL_USER, // Use environment variable for email
+    pass: process.env.EMAIL_PASS, // Use environment variable for password
   },
 });
 
 // Endpoint to send OTP
 app.post('/send-otp', async (req, res) => {
   const { email } = req.body;
+
+  // Validate email format
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ success: false, message: 'Invalid email format.' });
+  }
 
   // Generate a 6-digit OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -32,10 +44,10 @@ app.post('/send-otp', async (req, res) => {
 
   // Email options
   const mailOptions = {
-    from: 'ishrak.riyadh@gmail.com', // Replace with your Gmail address
-    to: email,
-    subject: 'Your OTP Code',
-    text: `Your OTP code is ${otp}.`,
+    from: process.env.EMAIL_USER, // Sender email
+    to: email, // Recipient email
+    subject: 'Your OTP Code', // Email subject
+    text: `Your OTP code is ${otp}.`, // Email body
   };
 
   // Send the email
@@ -51,6 +63,11 @@ app.post('/send-otp', async (req, res) => {
 // Endpoint to verify OTP
 app.post('/verify-otp', (req, res) => {
   const { email, otp } = req.body;
+
+  // Validate email and OTP
+  if (!email || !otp) {
+    return res.status(400).json({ success: false, message: 'Email and OTP are required.' });
+  }
 
   // Fetch the stored OTP
   const storedOtpData = otpStore[email];
